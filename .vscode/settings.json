@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "cstdint": "cpp",
+        "tmf8828_app.h": "c",
+        "tmf8820.h": "c"
+    }
+}
