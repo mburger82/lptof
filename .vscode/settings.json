@@ -2,6 +2,11 @@
     "files.associations": {
         "cstdint": "cpp",
         "tmf8828_app.h": "c",
-        "tmf8820.h": "c"
+        "tmf8820.h": "c",
+        "audiomanager.h": "c",
+        "freertos.h": "c",
+        "task.h": "c",
+        "esp_log.h": "c",
+        "gpio.h": "c"
     }
 }
