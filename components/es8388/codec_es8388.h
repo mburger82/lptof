@@ -91,38 +91,6 @@ typedef enum {
     BIT_LENGTH_MAX,
 } es_bits_length_t;
 
-
-// typedef enum {
-//     LCLK_DIV_MIN = -1,
-//     LCLK_DIV_128 = 0,
-//     LCLK_DIV_192 = 1,
-//     LCLK_DIV_256 = 2,
-//     LCLK_DIV_384 = 3,
-//     LCLK_DIV_512 = 4,
-//     LCLK_DIV_576 = 5,
-//     LCLK_DIV_768 = 6,
-//     LCLK_DIV_1024 = 7,
-//     LCLK_DIV_1152 = 8,
-//     LCLK_DIV_1408 = 9,
-//     LCLK_DIV_1536 = 10,
-//     LCLK_DIV_2112 = 11,
-//     LCLK_DIV_2304 = 12,
-
-//     LCLK_DIV_125 = 16,
-//     LCLK_DIV_136 = 17,
-//     LCLK_DIV_250 = 18,
-//     LCLK_DIV_272 = 19,
-//     LCLK_DIV_375 = 20,
-//     LCLK_DIV_500 = 21,
-//     LCLK_DIV_544 = 22,
-//     LCLK_DIV_750 = 23,
-//     LCLK_DIV_1000 = 24,
-//     LCLK_DIV_1088 = 25,
-//     LCLK_DIV_1496 = 26,
-//     LCLK_DIV_1500 = 27,
-//     LCLK_DIV_MAX,
-// } es_lclk_div_t;
-
 typedef enum {
     D2SE_PGA_GAIN_MIN = -1,
     D2SE_PGA_GAIN_DIS = 0,
@@ -196,6 +164,7 @@ typedef enum {
 // } es_i2s_clock_t;
 
 void es8388_init(uint32_t samplerate, i2s_data_bit_width_t bits_per_sample, uint8_t i2s_channel_nums, uint8_t sda, uint8_t scl);
+void es8388_setVolume(int volume);
 void es8388_zero_dma_buffer();
 void es8388_read(void* data, size_t size, size_t *bytes_read, TickType_t ticks_to_wait);
 void es8388_write(const void *src, size_t size, size_t *bytes_written, TickType_t ticks_to_wait);

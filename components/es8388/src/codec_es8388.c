@@ -21,94 +21,21 @@
 
 #define ES8388_ADDR 0b0010000
 
-// #define I2C_MASTER_SDA_IO 18
-// #define I2C_MASTER_SCL_IO 23
-
-// esp_err_t event_handler(void *ctx, system_event_t *event)
-// {
-//     return ESP_OK;
-// }
-
-uint8_t i2c_write_bulk( uint8_t i2c_bus_addr, uint8_t reg, uint8_t bytes, uint8_t *data)
-{
-	// i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    // i2c_master_start(cmd);
-    // i2c_master_write_byte(cmd, i2c_bus_addr << 1 | I2C_MASTER_WRITE, ACK_CHECK_EN);
-    // i2c_master_write(cmd, &reg, 1, ACK_CHECK_EN);
-    // i2c_master_write(cmd, data, bytes, ACK_CHECK_EN);
-    // i2c_master_stop(cmd);
-    // int ret = i2c_master_cmd_begin( I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
-    // i2c_cmd_link_delete(cmd);
-    // if (ret != ESP_OK) {
-    //     return ret;
-    // }
-    gpi2c_writeRegister(i2c_bus_addr, reg, data, bytes);
-    return 0;
-}
-
-uint8_t i2c_write( uint8_t i2c_bus_addr, uint8_t reg, uint8_t value)
-{
-    // return i2c_write_bulk( i2c_bus_addr, reg, 1, &value );
-    gpi2c_writeRegister(i2c_bus_addr, reg, &value, 1);
-    return 0;
-}
-
-uint8_t i2c_read( uint8_t i2c_bus_addr, uint8_t reg)
-{
-	   	// uint8_t buffer[2];
-
-	    // buffer[0] = reg;
-
-	    // int ret;
-	    // i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-	    // // Write the register address to be read
-	    // i2c_master_start(cmd);
-	    // i2c_master_write_byte(cmd, i2c_bus_addr << 1 | I2C_MASTER_WRITE, ACK_CHECK_EN);
-	    // i2c_master_write_byte(cmd, buffer[0], ACK_CHECK_EN);
-
-	    // // Read the data for the register from the slave
-	    // i2c_master_start(cmd);
-	    // i2c_master_write_byte(cmd, i2c_bus_addr << 1 | I2C_MASTER_READ, ACK_CHECK_EN);
-	    // i2c_master_read_byte(cmd, &buffer[0], NACK_VAL);
-	    // i2c_master_stop(cmd);
-
-	    // ret = i2c_master_cmd_begin( I2C_MASTER_NUM, cmd, 1000 / portTICK_RATE_MS);
-	    // i2c_cmd_link_delete(cmd);
-	    // return (buffer[0]);
-        uint8_t data[2];
-        gpi2c_readRegister(i2c_bus_addr, reg, &data, 1);
-        return data[0];
-}
-
 esp_err_t i2c_master_init(uint8_t sda, uint8_t scl)
 {
-    // ESP_LOGI(TAG, "Init I2C\n");
-    // int i2c_master_port = I2C_MASTER_NUM;
-    // i2c_config_t conf;
-    // conf.mode = I2C_MODE_MASTER;
-    // conf.sda_io_num = I2C_MASTER_SDA_IO;
-    // conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    // conf.scl_io_num = I2C_MASTER_SCL_IO;
-    // conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    // conf.master.clk_speed = 100000;
-    // conf.clk_flags = 0;
-
-    // i2c_param_config(i2c_master_port, &conf);
-
-    // return i2c_driver_install(i2c_master_port, conf.mode, 0, 0, 0);
     gpi2c_init(sda, scl, 400000);
     return 0;
 }
 
 static esp_err_t es_write_reg(uint8_t slave_addr, uint8_t reg_add, uint8_t data)
 {
-    return i2c_write( ES8388_ADDR, reg_add, data );
+    gpi2c_writeRegister(ES8388_ADDR, reg_add, &data, 1);
+    return ESP_OK;
 }
 
 static esp_err_t es_read_reg(uint8_t reg_add, uint8_t *p_data)
 {
-    *p_data = i2c_read( ES8388_ADDR, reg_add );
+    gpi2c_readRegister(ES8388_ADDR, reg_add, p_data, 1);
     return ESP_OK;
 }
 
@@ -275,15 +202,13 @@ esp_err_t es8388_start(es_module_t mode)
 esp_err_t es8388_set_voice_volume(int volume)
 {
     esp_err_t res = ESP_OK;
-    if (volume < 0)
-        volume = 0;
-    else if (volume > 100)
-        volume = 100;
-    volume /= 3;
-    res = es_write_reg(ES8388_ADDR, ES8388_DACCONTROL24, volume);
-    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL25, volume);
-    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL26, volume);
-    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL27, volume);
+    int volumevalue = 33;
+    volumevalue = (float)(volumevalue) / 100.0 * (float)(volume);
+    ESP_LOGI(TAG, "Set ES8388 Volume to %i", volumevalue);
+    res = es_write_reg(ES8388_ADDR, ES8388_DACCONTROL24, volumevalue);
+    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL25, volumevalue);
+    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL26, volumevalue);
+    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL27, volumevalue);
     return res;
 }
 
@@ -296,9 +221,10 @@ void es8388_config(uint8_t bit_depth)
     //	es_adc_input_t input = ADC_INPUT_LINPUT1_RINPUT1;
     // 	es_adc_input_t input = ADC_INPUT_LINPUT2_RINPUT2;
 
-    //es_dac_output_t output = DAC_OUTPUT_LOUT1 | DAC_OUTPUT_LOUT2 | DAC_OUTPUT_ROUT1 | DAC_OUTPUT_ROUT2;
-	es_dac_output_t output = DAC_OUTPUT_LOUT1  | DAC_OUTPUT_ROUT1;
-	//es_dac_output_t output = DAC_OUTPUT_LOUT2  | DAC_OUTPUT_ROUT2;
+    // es_dac_output_t output = DAC_OUTPUT_LOUT1 | DAC_OUTPUT_LOUT2 | DAC_OUTPUT_ROUT1 | DAC_OUTPUT_ROUT2;
+	// es_dac_output_t output = DAC_OUTPUT_LOUT1  | DAC_OUTPUT_ROUT1;
+    es_dac_output_t output = DAC_OUTPUT_SPK;
+	// es_dac_output_t output = DAC_OUTPUT_LOUT2  | DAC_OUTPUT_ROUT2;
 
     //es_dac_output_t output = 0;
 	es_adc_input_t input = ADC_INPUT_LINPUT1_RINPUT1;
@@ -330,11 +256,12 @@ void es8388_config(uint8_t bit_depth)
         break;
     }
     // es_bits_length_t bits_length = BIT_LENGTH_16BITS;
+    // es_module_t module = ES_MODULE_LINE;
     es_module_t module = ES_MODULE_DAC;
-    // es_format_t fmt = I2S_NORMAL;
     es_format_t fmt = I2S_DSP;
+    // es_format_t fmt = I2S_DSP;
 
-    es8388_config_i2s( bits_length, ES_MODULE_ADC_DAC, fmt );
+    es8388_config_i2s( bits_length, module, fmt );
     es8388_set_voice_volume( 100 );
     ESP_LOGW(TAG, "es8388_start result: %i", es8388_start( module ));
 }
@@ -345,8 +272,9 @@ void es8388_init(uint32_t samplerate, i2s_data_bit_width_t bits_per_sample, uint
     vTaskDelay(20);
     es8388_config(bits_per_sample);
     i2smanager_init(samplerate, bits_per_sample, i2s_channel_nums);
-    // i2s_start(I2S_NUM);    
-    // i2s_zero_dma_buffer(I2S_NUM);
+}
+void es8388_setVolume(int volume) {
+    es8388_set_voice_volume(volume);
 }
 void es8388_zero_dma_buffer() {
     // i2s_zero_dma_buffer(I2S_NUM);
@@ -355,5 +283,7 @@ void es8388_read(void* data, size_t size, size_t *bytes_read, TickType_t ticks_t
     i2smanager_read((void *)data, size, bytes_read, ticks_to_wait);
 }
 void es8388_write(const void *data, size_t size, size_t *bytes_written, TickType_t ticks_to_wait) {
-    i2smanager_write(data, size, bytes_written, ticks_to_wait);
+    if(i2smanager_write(data, size, bytes_written, ticks_to_wait) != ESP_OK) {
+        ESP_LOGE(TAG, "Error writing to i2s");
+    }
 }

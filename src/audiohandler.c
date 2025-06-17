@@ -23,7 +23,9 @@
 #include "audiohandler.h"
 
 
-#define TAG "AUDIOMANAGER"
+#define TAG "AUDIOHANDLER"
+#define GPIO_AMP_ENABLE     21
+#define GPIO_AMP_ENABLE_BITMASK  (1ULL<<GPIO_AMP_ENABLE)
 
 StreamBufferHandle_t sb_rxdata;
 typedef struct {
@@ -105,7 +107,7 @@ static enum mad_flow output(void *data, struct mad_header const *header, struct 
     {
         // signed int sample;
         // // output sample(s) in 16-bit signed little-endian PCM
-        float volume = 0.1;
+        float volume = 0.5;
         // sample = scale(*left_ch++);
         // mybuffer_audio[i++] = (float)(sample * volume);
         // sample = scale(*right_ch++);
@@ -113,33 +115,28 @@ static enum mad_flow output(void *data, struct mad_header const *header, struct 
         mybuffer_audio[i++] = scale(*left_ch++)*volume;
         mybuffer_audio[i++] = scale(*right_ch++)*volume;
     }
-    // printf("\n");
-    // for(int i = 0; i < 20; i++) {
-    //     printf("%06i ", ((int16_t*)(mybuffer_audio))[i]);
-    // }
-    // printf("\n");
     am_send(mybuffer_audio, 1152 * 4, obj->am_senderID);
     return MAD_FLOW_CONTINUE;
 }
 
 static enum mad_flow error(void *data, struct mad_stream *stream, struct mad_frame *frame) {
-  //struct buffer *buffer = data;
   printf("decoding error 0x%04x (%s) \n", stream->error, mad_stream_errorstr(stream));
   /* return MAD_FLOW_BREAK here to stop decoding (and propagate an error) */
   return MAD_FLOW_CONTINUE;
 }
 
-void audiomanagerTask(void* param) {
+void audiohandlerTask(void* param) {
     vTaskDelay(100/portTICK_PERIOD_MS);
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = 1<<21;
+    io_conf.pin_bit_mask = GPIO_AMP_ENABLE_BITMASK;
     io_conf.pull_down_en = 0;
     io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
-    gpio_set_level(21, 1);
+    gpio_set_level(GPIO_AMP_ENABLE, 1);
     vTaskDelay(100/portTICK_PERIOD_MS);
+    
     playMP3File("");
     for(;;) {
         // ESP_LOGI(TAG, "Running...");
@@ -156,7 +153,7 @@ int readFileListFromSD(){
 }
 
 void initEncoder(void){
-    am_init(AM_I2S_ES8388, 44100, 256, GPIO_CODEC_I2C_SDA, GPIO_CODEC_I2C_SCL);
+    am_init(AM_I2S_ES8388, 44100, 8*256, GPIO_CODEC_I2C_SDA, GPIO_CODEC_I2C_SCL);
     sem_endata = xSemaphoreCreateMutex();
     sb_rxdata = xStreamBufferCreate(8*256, 256);
 }
@@ -189,31 +186,11 @@ void playMP3File(char* filename){
     player->am_senderID = mp3_senderID;
     struct mad_decoder decoder;
     int result;
-
-    // char path[] = "/sdcard/ack_40_whitcher_questsuccess.mp3\0";
-    // ESP_LOGI(TAG, "Reading file %s", path);
-    // FILE *f = fopen(path, "r");
-    // if (f == NULL) {
-    //     ESP_LOGE(TAG, "Failed to open file for reading");
-    //     while(1) {};    
-    // }
-    // char line[64];
-    // fgets(line, sizeof(line), f);
-    // fclose(f);
-
-    // // strip newline
-    // char *pos = strchr(line, '\n');
-    // if (pos) {
-    //     *pos = '\0';
-    // }
-    // ESP_LOGI(TAG, "Read from file: '%s'", line);
-
-
-    
     for(;;) {
         vTaskDelay(1000/portTICK_PERIOD_MS);
         player->dbuffer = NULL;
-        strcpy(player->filepath, "/sdcard/ack_40_whitcher_questsuccess.mp3\0");
+        // strcpy(player->filepath, "/sdcard/ack_40_whitcher_questsuccess.mp3\0");
+        strcpy(player->filepath, "/sdcard/fail_05_hellodarkness.mp3\0");
         player->fd = fopen(player->filepath, "r");        
         if (player->fd == NULL) {
             printf("Failed to read existing file : %s \n", player->filepath);            
@@ -233,8 +210,11 @@ void playMP3File(char* filename){
 void stopPlaying(void){
 
 }
+void setVolume(int volume) {
+    am_setVolume(volume);
+}
 
-void initAudiomanager() {
+void initAudioHandler() {
     
-    xTaskCreate(audiomanagerTask, "audiomanager", 10*2048, NULL, 5, NULL);
+    xTaskCreate(audiohandlerTask, "audiohandler", 10*2048, NULL, 5, NULL);
 }

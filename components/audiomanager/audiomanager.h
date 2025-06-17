@@ -18,6 +18,7 @@ typedef enum {
 } am_mode_t;
 
 void am_init(am_mode_t mode, uint32_t samplerate, uint32_t buffersize, uint8_t sda, uint8_t scl);
+void am_setVolume(int volume);
 int am_register_sender(uint32_t dataslots);
 uint32_t am_getBufferSize(uint8_t sizeofElement);
 uint32_t am_getBufferLevel(uint32_t senderID);

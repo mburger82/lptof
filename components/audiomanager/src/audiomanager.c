@@ -13,7 +13,7 @@
 #include "audiomanager.h"
 #include "codec_es8388.h"
 
-#define TAG "audiomanager"
+#define TAG "AUDIOMANAGER"
 
 uint32_t audio_buffer_size = 2048;
 
@@ -21,7 +21,6 @@ EventGroupHandle_t ev_audiomanager_state;
 #define AUDIOMANAGER_READY      1<<0
 
 typedef struct {
-    // QueueHandle_t sendqueue;    
     StreamBufferHandle_t sendbuffer;
     uint32_t slots;
     int senderID;
@@ -84,14 +83,14 @@ void audioTask(void* p) {
         memset(buffer_write, 0, audio_buffer_size);
         while(sender != NULL) {
             if(xStreamBufferBytesAvailable(sender->sendbuffer) >= audio_buffer_size) {
-                size_t size = xStreamBufferReceive(sender->sendbuffer, data, audio_buffer_size, 0);                
+                size_t size = xStreamBufferReceive(sender->sendbuffer, data, audio_buffer_size, 0);
                 for(int i = 0; i < audio_buffer_size/sizeof(int16_t);i++) {
                     buffer_write[i]+= data[i];
                 }
             }
             sender = sender->next;
         }
-		es8388_write(buffer_write, audio_buffer_size, &bytes_written, 100);
+        es8388_write(buffer_write, audio_buffer_size, &bytes_written, 100);
     }
 }
 
@@ -116,6 +115,9 @@ void am_init(am_mode_t mode, uint32_t samplerate, uint32_t buffersize, uint8_t s
     }
     xTaskCreate(audioTask, "audiomanager", 4096, NULL, 10, NULL);
     ESP_LOGI(TAG, "Init done");
+}
+void am_setVolume(int volume) {
+    es8388_setVolume(volume);
 }
 int am_register_sender(uint32_t dataslots) {
     xEventGroupWaitBits(ev_audiomanager_state, AUDIOMANAGER_READY, false, false, portMAX_DELAY);    

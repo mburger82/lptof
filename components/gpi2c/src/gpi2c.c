@@ -58,6 +58,7 @@ esp_err_t gpi2c_writeData(uint8_t addr, uint8_t * data, uint16_t len) {
 void gpi2c_init(int pinI2C_SDA, int pinI2C_SCL, uint32_t frequency) {
     if(i2cMutex == NULL) {
         ESP_LOGI(TAG, "Init GPI2C...");
+        ESP_LOGI(TAG, "I2C Config: SDA:%i - SCL:%i - Speed:%iHz", pinI2C_SDA, pinI2C_SCL, (int)frequency);
         i2cMutex = xSemaphoreCreateMutex();
         i2c_config_t conf = {
             .mode = I2C_MODE_MASTER,

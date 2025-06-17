@@ -23,18 +23,28 @@ void app_main() {
     // esp_pm_configure(&config);
     initButtonhandler();
     // initTMF8820(200, 25, 6, 100, 2000);
-    initAudiomanager();
+    initAudioHandler();
     initSDCard();
     initEncoder();
+
+    uint8_t volume = 50;
 
     for(;;) {
         // ESP_LOGI(TAG, "Test");
         if(getButtonPress(BUTTON_REC, true) == BUTTON_PRESSED_SHORT) {
             ESP_LOGI(TAG, "Button Rec pressed short");
+            if(volume < 100) {
+                volume += 10;
+            }
+            setVolume(volume);
             // playMP3File("");
         }
         if(getButtonPress(BUTTON_MODE, true) == BUTTON_PRESSED_SHORT) {
             ESP_LOGI(TAG, "Button Mode pressed short");
+            if(volume > 0) {
+                volume -= 10;
+            }
+            setVolume(volume);
         }
         // if(tmf8820_detected()) {
         //     ESP_LOGI(TAG, "Found you! Distance: %i", tmf8820_distance());

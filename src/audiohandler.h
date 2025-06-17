@@ -1,13 +1,13 @@
 #pragma once
 
-#define GPIO_CODEC_I2C_SDA          33
-#define GPIO_CODEC_I2C_SCL          32
+#define GPIO_CODEC_I2C_SDA          18
+#define GPIO_CODEC_I2C_SCL          23
 
 #define GPIO_I2S_MCLK               0
-#define GPIO_I2S_BCLK               27
+#define GPIO_I2S_BCLK               5
 #define GPIO_I2S_LRCLK              25
-#define GPIO_I2S_DIN                -1
-#define GPIO_I2S_DOUT               26
+#define GPIO_I2S_DIN                26
+#define GPIO_I2S_DOUT               35
 
 #define GPIO_SD_MOSI                15
 #define GPIO_SD_MISO                2
@@ -28,6 +28,6 @@ int readFileListFromSD();
 void initEncoder();
 void playMP3File(char* filename);
 void stopPlaying();
+void setVolume(int volume);
 
-
-void initAudiomanager();
+void initAudioHandler();
