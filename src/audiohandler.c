@@ -107,7 +107,7 @@ static enum mad_flow output(void *data, struct mad_header const *header, struct 
     {
         // signed int sample;
         // // output sample(s) in 16-bit signed little-endian PCM
-        float volume = 0.5;
+        float volume = 0.95;
         // sample = scale(*left_ch++);
         // mybuffer_audio[i++] = (float)(sample * volume);
         // sample = scale(*right_ch++);
@@ -145,7 +145,6 @@ void audiohandlerTask(void* param) {
 }
 
 void initSDCard(void){
-
     initSDReader(GPIO_SD_MOSI, GPIO_SD_MISO, GPIO_SD_SCK, GPIO_SD_CS, -1);
 }
 int readFileListFromSD(){
@@ -189,8 +188,9 @@ void playMP3File(char* filename){
     for(;;) {
         vTaskDelay(1000/portTICK_PERIOD_MS);
         player->dbuffer = NULL;
-        // strcpy(player->filepath, "/sdcard/ack_40_whitcher_questsuccess.mp3\0");
-        strcpy(player->filepath, "/sdcard/fail_05_hellodarkness.mp3\0");
+        strcpy(player->filepath, "/sdcard/ack_40_whitcher_questsuccess.mp3\0");
+        // strcpy(player->filepath, "/sdcard/ack_10_success1.mp3\0");
+        // strcpy(player->filepath, "/sdcard/fail_05_hellodarkness.mp3\0");
         player->fd = fopen(player->filepath, "r");        
         if (player->fd == NULL) {
             printf("Failed to read existing file : %s \n", player->filepath);            

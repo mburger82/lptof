@@ -81,6 +81,7 @@ esp_err_t es8388_reg_init( es_dac_output_t output, es_adc_input_t input )
     res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL20, 0x90); // only right DAC to right mixer enable 0db
     res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL21, 0x80); //set internal ADC and DAC use the same LRCK clock, ADC LRCK as internal LRCK
     res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL23, 0x00);   //vroi=0
+    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL6, 0x38);   //Left and Right channel dac inversion
     res |= es8388_set_adc_dac_volume(ES_MODULE_DAC, 0, 0);          // 0db
 
     ESP_LOGW(TAG, "Setting DAC Output: %02x", output );
@@ -258,12 +259,26 @@ void es8388_config(uint8_t bit_depth)
     // es_bits_length_t bits_length = BIT_LENGTH_16BITS;
     // es_module_t module = ES_MODULE_LINE;
     es_module_t module = ES_MODULE_DAC;
-    es_format_t fmt = I2S_DSP;
+    es_format_t fmt = I2S_NORMAL;
     // es_format_t fmt = I2S_DSP;
 
     es8388_config_i2s( bits_length, module, fmt );
     es8388_set_voice_volume( 100 );
     ESP_LOGW(TAG, "es8388_start result: %i", es8388_start( module ));
+}
+void es8388_chatgptconfig() {
+    // es_write_reg(ES8388_ADDR, 0x04, 0x3C);
+    // es_write_reg(ES8388_ADDR, 0x02, 0x00);
+    es_write_reg(ES8388_ADDR, 0x1A, 0x00);
+    es_write_reg(ES8388_ADDR, 0x1B, 0x00);
+    // es_write_reg(ES8388_ADDR, 0x2E, 0x21);
+    // es_write_reg(ES8388_ADDR, 0x2F, 0x21);
+    // es_write_reg(ES8388_ADDR, 0x30, 0x21);
+    // es_write_reg(ES8388_ADDR, 0x31, 0x21);
+    // es_write_reg(ES8388_ADDR, 0x27, 0x80);
+    // es_write_reg(ES8388_ADDR, 0x2A, 0x80);
+    es_write_reg(ES8388_ADDR, 0x1D, 0x1C);
+    
 }
 
 void es8388_init(uint32_t samplerate, i2s_data_bit_width_t bits_per_sample, uint8_t i2s_channel_nums, uint8_t sda, uint8_t scl) {
@@ -271,6 +286,7 @@ void es8388_init(uint32_t samplerate, i2s_data_bit_width_t bits_per_sample, uint
     i2c_master_init(sda, scl);
     vTaskDelay(20);
     es8388_config(bits_per_sample);
+    es8388_chatgptconfig();
     i2smanager_init(samplerate, bits_per_sample, i2s_channel_nums);
 }
 void es8388_setVolume(int volume) {

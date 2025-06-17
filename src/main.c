@@ -27,7 +27,8 @@ void app_main() {
     initSDCard();
     initEncoder();
 
-    uint8_t volume = 50;
+    uint8_t volume = 100;
+    setVolume(volume);
 
     for(;;) {
         // ESP_LOGI(TAG, "Test");
