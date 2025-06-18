@@ -55,7 +55,8 @@ static enum mad_flow input(void *data, struct mad_stream *stream) {
     if(obj->dbuffer != NULL) {
         free(obj->dbuffer);
     }
-    const size_t chunk_size = 4096;
+    // const size_t chunk_size = 4096;
+    const size_t chunk_size = 4*4096;
     obj->dbuffer = malloc(chunk_size);
     if (NULL == obj->dbuffer) {
         printf("audio data dbuffer malloc failed");
@@ -112,10 +113,11 @@ static enum mad_flow output(void *data, struct mad_header const *header, struct 
         // mybuffer_audio[i++] = (float)(sample * volume);
         // sample = scale(*right_ch++);
         // mybuffer_audio[i++] = (float)(sample * volume);
-        // mybuffer_audio[i++] = scale(*left_ch++)*volume;
+        mybuffer_audio[i++] = scale(*left_ch++)*volume;
         // mybuffer_audio[i++] = scale(*right_ch++)*volume;
-        mybuffer_audio[i++] = scale(*left_ch++);
-        mybuffer_audio[i++] = scale(*right_ch++);
+        mybuffer_audio[i++] = scale(*right_ch++)*0;
+        // mybuffer_audio[i++] = scale(*left_ch++);
+        // mybuffer_audio[i++] = scale(*right_ch++);
     }
     am_send(mybuffer_audio, 1152 * 4, obj->am_senderID);
     return MAD_FLOW_CONTINUE;
@@ -154,9 +156,9 @@ int readFileListFromSD(){
 }
 
 void initEncoder(void){
-    am_init(AM_I2S_ES8388, 44100, 8*256, GPIO_CODEC_I2C_SDA, GPIO_CODEC_I2C_SCL);
+    am_init(AM_I2S_ES8388, 44100, 2048, GPIO_CODEC_I2C_SDA, GPIO_CODEC_I2C_SCL);
     sem_endata = xSemaphoreCreateMutex();
-    sb_rxdata = xStreamBufferCreate(8*256, 256);
+    sb_rxdata = xStreamBufferCreate(8*2048, 256);
 }
 
 void skip_id3v2_tag(FILE *fp) {
@@ -181,7 +183,7 @@ void skip_id3v2_tag(FILE *fp) {
 }
 
 void playMP3File(char* filename){
-    mp3_senderID = am_register_sender(20);
+    mp3_senderID = am_register_sender(5);
     ESP_LOGI(TAG, "Created SenderID on mp3test: %i", (int)mp3_senderID);
     player_mp3_t* player = malloc(sizeof(player_mp3_t));        
     player->am_senderID = mp3_senderID;

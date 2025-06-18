@@ -173,6 +173,6 @@ void es8388_init(uint32_t samplerate, i2s_data_bit_width_t bits_per_sample, uint
 void es8388_setVolume(es_vol_t dev, int volume);
 void es8388_zero_dma_buffer();
 void es8388_read(void* data, size_t size, size_t *bytes_read, TickType_t ticks_to_wait);
-void es8388_write(const void *src, size_t size, size_t *bytes_written, TickType_t ticks_to_wait);
+void es8388_write(void *data, size_t size, size_t *bytes_written, TickType_t ticks_to_wait);
 
 #endif /* MAIN_CODEC_ES8388_H_ */
