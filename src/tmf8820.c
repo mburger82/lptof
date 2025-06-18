@@ -50,12 +50,6 @@ SemaphoreHandle_t mutex_getDistanceData;
 void tmf8820task(void* param) {
     mutex_getDistanceData = xSemaphoreCreateMutex();
     tmf882x_setConfig(tofconf_updatetime, tofconf_kilo_iterations, tofconf_spad, tofconf_threshold_low_mm, tofconf_threshold_high_mm);
-    // vTaskDelay(50/portTICK_PERIOD_MS);
-    // gpi2c_init(GPIO_I2C_SDA, GPIO_I2C_SCL, 100000);    
-    // vTaskDelay(50/portTICK_PERIOD_MS);
-    // uint8_t appid = 10;
-    // readTMF8820Register(0x00, &appid);
-    // ESP_LOGI(TAG, "appid: %i", appid);
     
     setupFn(0, 9600, 400000);
     vTaskDelay(50/portTICK_PERIOD_MS);

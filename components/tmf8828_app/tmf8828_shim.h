@@ -35,8 +35,8 @@
 
 // ---------------------------------------------- defines -----------------------------------------
 
-#define GPIO_I2C_SDA_TMF        0
-#define GPIO_I2C_SCL_TMF        2
+#define GPIO_I2C_SDA_TMF        18
+#define GPIO_I2C_SCL_TMF        23
 
 #define ARDUINO_MAX_I2C_TRANSFER                  32    /**< Arduino Uno can only handle up to 32 bytes in a single i2c tx/rx */
 

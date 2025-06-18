@@ -11,7 +11,7 @@
 #include "tmf8820.h"
 #include "audioplayer.h"
 #include "buttonhandler.h"
-#include "memon.h"
+// #include "memon.h"
 
 #define TAG "lptof"
 

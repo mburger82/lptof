@@ -116,8 +116,6 @@ void configurePins ( void * dptr )
 void i2cOpen ( void * dptr, uint32_t i2cClockSpeedInHz )
 {
   (void)dptr; // not used here
-  // Wire.begin( );
-  // Wire.setClock( i2cClockSpeedInHz );
   gpi2c_init(GPIO_I2C_SDA_TMF, GPIO_I2C_SCL_TMF, i2cClockSpeedInHz);
 }
 
@@ -480,7 +478,7 @@ int8_t i2cTxReg ( void * dptr, uint8_t slaveAddr, uint8_t regAddr, uint16_t toTx
   // tmf8828Driver * driver = (tmf8828Driver *)dptr;
   // return i2cTxOnly( driver->logLevel, slaveAddr, regAddr, toTx, txData ); 
   if(gpi2c_writeRegister(slaveAddr, regAddr, txData, toTx) != ESP_OK) {
-    ESP_LOGE(TAG, "i2cRxReg error");
+    ESP_LOGE(TAG, "i2cTxReg error");
     return I2C_ERR_OTHER;
   }
   return I2C_SUCCESS;
