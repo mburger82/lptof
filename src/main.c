@@ -9,7 +9,7 @@
 #include "driver/gpio.h"
 
 #include "tmf8820.h"
-#include "audiohandler.h"
+#include "audioplayer.h"
 #include "buttonhandler.h"
 
 #define TAG "lptof"
@@ -23,11 +23,11 @@ void app_main() {
     // esp_pm_configure(&config);
     initButtonhandler();
     // initTMF8820(200, 25, 6, 100, 2000);
-    initAudioHandler();
+    initAudioPlayer();
     initSDCard();
     initEncoder();
 
-    uint8_t volume = 100;
+    uint8_t volume = 20;
     setVolumeMain(volume);
     setVolumeOut1(volume);
     setVolumeOut2(volume);
@@ -36,22 +36,12 @@ void app_main() {
         // ESP_LOGI(TAG, "Test");
         if(getButtonPress(BUTTON_REC, true) == BUTTON_PRESSED_SHORT) {
             ESP_LOGI(TAG, "Button Rec pressed short");
-            if(volume < 100) {
-                volume += 10;
-            }
-            setVolumeMain(volume);
-            setVolumeOut1(volume);
-            setVolumeOut2(volume);
-            // playMP3File("");
+            initSDCard();
+            
         }
         if(getButtonPress(BUTTON_MODE, true) == BUTTON_PRESSED_SHORT) {
             ESP_LOGI(TAG, "Button Mode pressed short");
-            if(volume > 0) {
-                volume -= 10;
-            }
-            setVolumeMain(volume);
-            setVolumeOut1(volume);
-            setVolumeOut2(volume);
+            readFileListFromSD();
         }
         // if(tmf8820_detected()) {
         //     ESP_LOGI(TAG, "Found you! Distance: %i", tmf8820_distance());

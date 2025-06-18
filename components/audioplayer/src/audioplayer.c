@@ -20,18 +20,18 @@
 #include "audiomanager.h"
 #include "mad.h"
 
-#include "audiohandler.h"
+#include "../audioplayer.h"
 
 
 #define TAG "AUDIOHANDLER"
-#define GPIO_AMP_ENABLE     21
-#define GPIO_AMP_ENABLE_BITMASK  (1ULL<<GPIO_AMP_ENABLE)
 
-StreamBufferHandle_t sb_rxdata;
+#define GPIO_POWER_ENABLE_BITMASK  (1ULL<<GPIO_POWER_ENABLE)
+
+// StreamBufferHandle_t sb_rxdata;
 typedef struct {
-    char filepath[100];
+    char filepath[MAX_NAMELENGTH];
     FILE *fd;
-    char fd_path[100];
+    char fd_path[MAX_NAMELENGTH];
     uint8_t *dbuffer;
     int16_t *playbuffer;
     bool playing;
@@ -39,8 +39,8 @@ typedef struct {
     uint32_t am_senderID;
 }player_mp3_t;
 
-SemaphoreHandle_t sem_endata;
-uint32_t mp3_senderID = 0;
+// SemaphoreHandle_t sem_endata;
+// uint32_t mp3_senderID = 0;
 
 filedata_t filelist[MAX_FILES];
 
@@ -129,36 +129,50 @@ static enum mad_flow error(void *data, struct mad_stream *stream, struct mad_fra
   return MAD_FLOW_CONTINUE;
 }
 
-void audiohandlerTask(void* param) {
-    vTaskDelay(100/portTICK_PERIOD_MS);
+void initPowerGPIO() {
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = GPIO_AMP_ENABLE_BITMASK;
+    io_conf.pin_bit_mask = GPIO_POWER_ENABLE_BITMASK;
     io_conf.pull_down_en = 0;
     io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
-    gpio_set_level(GPIO_AMP_ENABLE, 1);
-    vTaskDelay(100/portTICK_PERIOD_MS);
-    
-    playMP3File("");
-    for(;;) {
-        // ESP_LOGI(TAG, "Running...");
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-    }
 }
+
+
 
 void initSDCard(void){
     initSDReader(GPIO_SD_MOSI, GPIO_SD_MISO, GPIO_SD_SCK, GPIO_SD_CS, -1);
 }
 int readFileListFromSD(){
-    return 0;
+    int nfiles = sdGetFileListLength("");
+    ESP_LOGI(TAG, "Files in folder: %i", nfiles);
+    for(int i = 0; i < nfiles; i++) {
+        sdGetFileNameFromIndex(i, "", filelist[i].name);
+    }
+    ESP_LOGI(TAG, "Filelist:");
+    for(int i = 0; i < nfiles; i++) {
+        ESP_LOGI(TAG, "File %i: %s", i, filelist[i].name);
+    }
+    return nfiles;
+}
+
+void powerEnable(bool state) {
+    if(state) {
+        gpio_set_level(GPIO_POWER_ENABLE, 1);
+    } else {
+        gpio_set_level(GPIO_POWER_ENABLE, 0);
+    }
 }
 
 void initEncoder(void){
     am_init(AM_I2S_ES8388, 44100, 2048, GPIO_CODEC_I2C_SDA, GPIO_CODEC_I2C_SCL);
-    sem_endata = xSemaphoreCreateMutex();
-    sb_rxdata = xStreamBufferCreate(8*2048, 256);
+    // if(sem_endata == NULL) {
+    //     sem_endata = xSemaphoreCreateMutex();
+    // }
+    // if(sb_rxdata == NULL) {
+    //     sb_rxdata = xStreamBufferCreate(8*2048, 256);
+    // }
 }
 
 void skip_id3v2_tag(FILE *fp) {
@@ -182,19 +196,45 @@ void skip_id3v2_tag(FILE *fp) {
     }
 }
 
-void playMP3File(char* filename){
-    mp3_senderID = am_register_sender(5);
-    ESP_LOGI(TAG, "Created SenderID on mp3test: %i", (int)mp3_senderID);
+EventGroupHandle_t ev_playercontrol;
+#define CONTROL_START_MP3    1 << 0
+#define CONTROL_STOP_MP3     1 << 1
+#define CONTROL_IS_PLAYING   1 << 2
+#define PLAYER_START         1 << 3
+SemaphoreHandle_t mx_mp3name;
+char mp3path[MAX_NAMELENGTH];
+
+void audioControlTask(void* param) {
+    ev_playercontrol = xEventGroupCreate();
+    mx_mp3name = xSemaphoreCreateMutex();
+    initPowerGPIO();
+    for(;;) {
+        EventBits_t playercontrol = xEventGroupGetBits(ev_playercontrol);
+        if(playercontrol & CONTROL_START_MP3) {
+            if(!(playercontrol & CONTROL_IS_PLAYING)) {
+                xEventGroupSetBits(ev_playercontrol, PLAYER_START);
+            } else {
+                ESP_LOGI(TAG, "Player busy");
+            }
+        } else if(playercontrol & CONTROL_STOP_MP3) {
+
+        }
+        vTaskDelay(20/portTICK_PERIOD_MS);
+    }
+}
+void audioplayerTask(void* param){
+    int mp3_senderID = am_register_sender(5);
+    ESP_LOGI(TAG, "Created SenderID in audioplayertask: %i", (int)mp3_senderID);
     player_mp3_t* player = malloc(sizeof(player_mp3_t));        
     player->am_senderID = mp3_senderID;
     struct mad_decoder decoder;
-    int result;
     for(;;) {
-        vTaskDelay(1000/portTICK_PERIOD_MS);
         player->dbuffer = NULL;
-        // strcpy(player->filepath, "/sdcard/ack_40_whitcher_questsuccess.mp3\0");
-        strcpy(player->filepath, "/sdcard/ack_10_success1.mp3\0");
-        // strcpy(player->filepath, "/sdcard/fail_05_hellodarkness.mp3\0");
+        xEventGroupWaitBits(ev_playercontrol, PLAYER_START, true, false, portMAX_DELAY);
+        xEventGroupSetBits(ev_playercontrol, CONTROL_IS_PLAYING);
+        xSemaphoreTake(mx_mp3name, portMAX_DELAY);
+        sprintf(player->filepath, "%s\0", mp3path);
+        xSemaphoreGive(mx_mp3name);
         player->fd = fopen(player->filepath, "r");        
         if (player->fd == NULL) {
             printf("Failed to read existing file : %s \n", player->filepath);            
@@ -202,16 +242,24 @@ void playMP3File(char* filename){
             skip_id3v2_tag(player->fd);
             vTaskDelay(10/portTICK_PERIOD_MS);
             mad_decoder_init(&decoder, player, input, 0, 0, output, error, 0);
-            result = mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);            
+            mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);            
             mad_decoder_finish(&decoder);
             free(player->dbuffer);
-            printf("Finished decoding \n");
+            // printf("Finished decoding \n");
             fclose(player->fd);
+            ESP_LOGI(TAG, "MP3 finished playing");
+            xEventGroupClearBits(ev_playercontrol, CONTROL_IS_PLAYING);
         }
-        vTaskDelay(2000/portTICK_PERIOD_MS);
+        vTaskDelay(50/portTICK_PERIOD_MS);
     }
 }
-void stopPlaying(void){
+void playMP3(char* filepath) {
+    
+}
+void stopMP3(void) {
+
+}
+bool isPlayingMP3() {
 
 }
 void setVolumeMain(int volume) {
@@ -224,7 +272,7 @@ void setVolumeOut2(int volume) {
     am_setVolumeOut2(volume);
 }
 
-void initAudioHandler() {
-    
-    xTaskCreate(audiohandlerTask, "audiohandler", 10*2048, NULL, 5, NULL);
+void initAudioPlayer() {
+    xTaskCreate(audioControlTask, "audiocontroller", 2*2048, NULL, 5, NULL);
+    xTaskCreate(audioplayerTask, "audioplayer", 10*2048, NULL, 5, NULL);
 }

@@ -1,4 +1,6 @@
 
+#include "stdio.h"
+#include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_system.h"
 // #include "esp_event.h"
@@ -68,4 +70,9 @@ esp_err_t i2smanager_read(void* data, size_t size, size_t *bytes_read, TickType_
 }
 esp_err_t i2smanager_write(uint8_t *data, size_t size, size_t *bytes_written, TickType_t ticks_to_wait) {
     return i2s_channel_write(tx_chan, data, I2S_BUFF_SIZE, bytes_written, ticks_to_wait);
+}
+
+esp_err_t i2smanager_zero_dma_buffer(void) {
+    memset(w_buf, 0, w_bytes);
+    return i2s_channel_preload_data(tx_chan, w_buf, I2S_BUFF_SIZE, &w_bytes);
 }

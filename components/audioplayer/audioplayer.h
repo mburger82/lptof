@@ -15,22 +15,28 @@
 #define GPIO_SD_CS                  13
 #define GPIO_SD_CD                  34
 
+#define GPIO_POWER_ENABLE           21
+
 #define MAX_FILES                   50
+#define MAX_NAMELENGTH              100
 
 typedef struct {
-    char name[50];
+    char name[MAX_NAMELENGTH];
 } filedata_t;
 extern filedata_t filelist[MAX_FILES];
 
 void initSDCard(void);
 int readFileListFromSD();
 
+void powerEnable(bool state);
+
 void initEncoder();
-void playMP3File(char* filename);
-void stopPlaying();
+void playMP3(char* filepath);
+void stopMP3(void);
+bool isPlayingMP3();
 void setVolume(int volume);
 void setVolumeMain(int volume);
 void setVolumeOut1(int volume);
 void setVolumeOut2(int volume);
 
-void initAudioHandler();
+void initAudioPlayer();

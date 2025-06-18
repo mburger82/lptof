@@ -116,6 +116,7 @@ void am_init(am_mode_t mode, uint32_t samplerate, uint32_t buffersize, uint8_t s
     xTaskCreate(audioTask, "audiomanager", 4096, NULL, 12, NULL);
     ESP_LOGI(TAG, "Init done");
 }
+
 void am_setVolumeMain(int volume) {
     es8388_setVolume(ES_VOL_MAIN, volume);
 }

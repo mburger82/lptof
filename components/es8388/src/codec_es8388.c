@@ -248,86 +248,6 @@ esp_err_t es8388_start(es_module_t mode)
     return res;
 }
 
-esp_err_t es8388_set_voice_volume(int volume)
-{
-    esp_err_t res = ESP_OK;
-    int volumevalue = 33;
-    volumevalue = (float)(volumevalue) / 100.0 * (float)(volume);
-    ESP_LOGI(TAG, "Set ES8388 Volume to %i", volumevalue);
-    res = es_write_reg(ES8388_ADDR, ES8388_DACCONTROL24, volumevalue);
-    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL25, volumevalue);
-    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL26, volumevalue);
-    res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL27, volumevalue);
-    return res;
-}
-
-void es8388_config(uint8_t bit_depth)
-{
-    ESP_LOGI(TAG, "\nes8388_config");
-    // Input/Output Modes
-    //
-    //	es_dac_output_t output = DAC_OUTPUT_LOUT1 | DAC_OUTPUT_LOUT2 | DAC_OUTPUT_ROUT1 | DAC_OUTPUT_ROUT2;
-    //	es_adc_input_t input = ADC_INPUT_LINPUT1_RINPUT1;
-    // 	es_adc_input_t input = ADC_INPUT_LINPUT2_RINPUT2;
-
-    // es_dac_output_t output = DAC_OUTPUT_LOUT1 | DAC_OUTPUT_LOUT2 | DAC_OUTPUT_ROUT1 | DAC_OUTPUT_ROUT2;
-	// es_dac_output_t output = DAC_OUTPUT_LOUT1  | DAC_OUTPUT_ROUT1;
-    es_dac_output_t output = DAC_OUTPUT_SPK;
-	// es_dac_output_t output = DAC_OUTPUT_LOUT2  | DAC_OUTPUT_ROUT2;
-
-    //es_dac_output_t output = 0;
-	es_adc_input_t input = ADC_INPUT_LINPUT1_RINPUT1;
-
-    es8388_reg_init( output, input );
-
-    // Modes Available
-    //
-    //	es_mode_t  = ES_MODULE_ADC;
-    //	es_mode_t  = ES_MODULE_LINE;
-    //	es_mode_t  = ES_MODULE_DAC;
-    //	es_mode_t  = ES_MODULE_ADC_DAC;
-    es_bits_length_t bits_length = BIT_LENGTH_MIN;
-    switch(bit_depth){
-        case 16:
-            bits_length = BIT_LENGTH_16BITS;
-        break;
-        case 18: 
-            bits_length = BIT_LENGTH_18BITS;
-        break;
-        case 20: 
-            bits_length = BIT_LENGTH_20BITS;
-        break;
-        case 24: 
-            bits_length = BIT_LENGTH_24BITS;
-        break;
-        case 32:
-            bits_length = BIT_LENGTH_32BITS;
-        break;
-    }
-    // es_bits_length_t bits_length = BIT_LENGTH_16BITS;
-    // es_module_t module = ES_MODULE_LINE;
-    es_module_t module = ES_MODULE_DAC;
-    es_format_t fmt = I2S_NORMAL;
-    // es_format_t fmt = I2S_DSP;
-
-    es8388_config_i2s( bits_length, module, fmt );
-    es8388_set_voice_volume( 100 );
-    ESP_LOGW(TAG, "es8388_start result: %i", es8388_start( module ));
-}
-void es8388_chatgptconfig() {
-    // es_write_reg(ES8388_ADDR, 0x04, 0x3C);
-    // es_write_reg(ES8388_ADDR, 0x02, 0x00);
-    es_write_reg(ES8388_ADDR, 0x1A, 0x00);
-    es_write_reg(ES8388_ADDR, 0x1B, 0x00);
-    // es_write_reg(ES8388_ADDR, 0x2E, 0x21);
-    // es_write_reg(ES8388_ADDR, 0x2F, 0x21);
-    // es_write_reg(ES8388_ADDR, 0x30, 0x21);
-    // es_write_reg(ES8388_ADDR, 0x31, 0x21);
-    // es_write_reg(ES8388_ADDR, 0x27, 0x80);
-    // es_write_reg(ES8388_ADDR, 0x2A, 0x80);
-    es_write_reg(ES8388_ADDR, 0x1D, 0x1C);
-    
-}
 esp_err_t es8388_defaultConfig() {
     esp_err_t res = ESP_OK;
     /* mute DAC during setup, power up all systems, slave mode */
@@ -357,28 +277,13 @@ esp_err_t es8388_defaultConfig() {
 	res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL5, 0x00);
 	res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL4, 0x00);
 
-	/* power down ADC while configuring; volume: +9dB for both channels */
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCPOWER, 0xff);
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCCONTROL1, 0x33);
-
-	/* select LINPUT2 / RINPUT2 as ADC input; stereo; 16 bit word length, format right-justified, MCLK / Fs = 256 */
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCCONTROL2, 0x50);
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCCONTROL3, 0x00);
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCCONTROL4, 0x0e);
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCCONTROL5, 0x02);
-
-	/* set ADC volume */
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCCONTROL8, 0x20);
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCCONTROL9, 0x20);
-
-	/* set LOUT1 / ROUT1 volume: 0dB (unattenuated) */
+		/* set LOUT1 / ROUT1 volume: 0dB (unattenuated) */
 	res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL24, 0x1e);
 	res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL25, 0x1e);
 
 	/* power up and enable DAC; power up ADC (no MIC bias) */
 	res |= es_write_reg(ES8388_ADDR, ES8388_DACPOWER, 0x33); //This one is critical
 	res |= es_write_reg(ES8388_ADDR, ES8388_DACCONTROL3, 0x00);
-	// res |= es_write_reg(ES8388_ADDR, ES8388_ADCPOWER, 0x09);
     return res;
 }
 
@@ -387,8 +292,6 @@ void es8388_init(uint32_t samplerate, i2s_data_bit_width_t bits_per_sample, uint
     i2c_master_init(sda, scl);
     vTaskDelay(20);
     es8388_defaultConfig();
-    // es8388_config(bits_per_sample);
-    // es8388_chatgptconfig();
     i2smanager_init(samplerate, bits_per_sample, i2s_channel_nums);
 }
 void es8388_setVolume(es_vol_t dev, int volume) {
@@ -425,6 +328,7 @@ void es8388_setVolume(es_vol_t dev, int volume) {
 }
 void es8388_zero_dma_buffer() {
     // i2s_zero_dma_buffer(I2S_NUM);
+    i2smanager_zero_dma_buffer();
 }
 void es8388_read(void* data, size_t size, size_t *bytes_read, TickType_t ticks_to_wait) {
     i2smanager_read((void *)data, size, bytes_read, ticks_to_wait);
