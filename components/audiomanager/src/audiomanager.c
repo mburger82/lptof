@@ -116,9 +116,16 @@ void am_init(am_mode_t mode, uint32_t samplerate, uint32_t buffersize, uint8_t s
     xTaskCreate(audioTask, "audiomanager", 4096, NULL, 10, NULL);
     ESP_LOGI(TAG, "Init done");
 }
-void am_setVolume(int volume) {
-    es8388_setVolume(volume);
+void am_setVolumeMain(int volume) {
+    es8388_setVolume(ES_VOL_MAIN, volume);
 }
+void am_setVolumeOut1(int volume) {
+    es8388_setVolume(ES_VOL_OUT1, volume);
+}
+void am_setVolumeOut2(int volume) {
+    es8388_setVolume(ES_VOL_OUT2, volume);
+}
+
 int am_register_sender(uint32_t dataslots) {
     xEventGroupWaitBits(ev_audiomanager_state, AUDIOMANAGER_READY, false, false, portMAX_DELAY);    
     uint32_t senderID = addSender(dataslots);

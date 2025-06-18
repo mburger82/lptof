@@ -29,5 +29,8 @@ void initEncoder();
 void playMP3File(char* filename);
 void stopPlaying();
 void setVolume(int volume);
+void setVolumeMain(int volume);
+void setVolumeOut1(int volume);
+void setVolumeOut2(int volume);
 
 void initAudioHandler();

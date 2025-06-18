@@ -112,8 +112,10 @@ static enum mad_flow output(void *data, struct mad_header const *header, struct 
         // mybuffer_audio[i++] = (float)(sample * volume);
         // sample = scale(*right_ch++);
         // mybuffer_audio[i++] = (float)(sample * volume);
-        mybuffer_audio[i++] = scale(*left_ch++)*volume;
-        mybuffer_audio[i++] = scale(*right_ch++)*volume;
+        // mybuffer_audio[i++] = scale(*left_ch++)*volume;
+        // mybuffer_audio[i++] = scale(*right_ch++)*volume;
+        mybuffer_audio[i++] = scale(*left_ch++);
+        mybuffer_audio[i++] = scale(*right_ch++);
     }
     am_send(mybuffer_audio, 1152 * 4, obj->am_senderID);
     return MAD_FLOW_CONTINUE;
@@ -188,8 +190,8 @@ void playMP3File(char* filename){
     for(;;) {
         vTaskDelay(1000/portTICK_PERIOD_MS);
         player->dbuffer = NULL;
-        strcpy(player->filepath, "/sdcard/ack_40_whitcher_questsuccess.mp3\0");
-        // strcpy(player->filepath, "/sdcard/ack_10_success1.mp3\0");
+        // strcpy(player->filepath, "/sdcard/ack_40_whitcher_questsuccess.mp3\0");
+        strcpy(player->filepath, "/sdcard/ack_10_success1.mp3\0");
         // strcpy(player->filepath, "/sdcard/fail_05_hellodarkness.mp3\0");
         player->fd = fopen(player->filepath, "r");        
         if (player->fd == NULL) {
@@ -210,8 +212,14 @@ void playMP3File(char* filename){
 void stopPlaying(void){
 
 }
-void setVolume(int volume) {
-    am_setVolume(volume);
+void setVolumeMain(int volume) {
+    am_setVolumeMain(volume);
+}
+void setVolumeOut1(int volume) {
+    am_setVolumeOut1(volume);
+}
+void setVolumeOut2(int volume) {
+    am_setVolumeOut2(volume);
 }
 
 void initAudioHandler() {

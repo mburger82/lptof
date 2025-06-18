@@ -28,7 +28,9 @@ void app_main() {
     initEncoder();
 
     uint8_t volume = 100;
-    setVolume(volume);
+    setVolumeMain(volume);
+    setVolumeOut1(volume);
+    setVolumeOut2(volume);
 
     for(;;) {
         // ESP_LOGI(TAG, "Test");
@@ -37,7 +39,9 @@ void app_main() {
             if(volume < 100) {
                 volume += 10;
             }
-            setVolume(volume);
+            setVolumeMain(volume);
+            setVolumeOut1(volume);
+            setVolumeOut2(volume);
             // playMP3File("");
         }
         if(getButtonPress(BUTTON_MODE, true) == BUTTON_PRESSED_SHORT) {
@@ -45,7 +49,9 @@ void app_main() {
             if(volume > 0) {
                 volume -= 10;
             }
-            setVolume(volume);
+            setVolumeMain(volume);
+            setVolumeOut1(volume);
+            setVolumeOut2(volume);
         }
         // if(tmf8820_detected()) {
         //     ESP_LOGI(TAG, "Found you! Distance: %i", tmf8820_distance());
