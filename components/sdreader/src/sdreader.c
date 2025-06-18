@@ -13,44 +13,15 @@
 
 #define EXAMPLE_MAX_CHAR_SIZE    64
 
-static const char *TAG = "example";
+#define TAG "sdreader"
 
 #define MOUNT_POINT "/sdcard"
 const char mount_point[] = MOUNT_POINT;
-sdmmc_card_t *card;
+sdmmc_card_t *card = NULL;
 // By default, SD card frequency is initialized to SDMMC_FREQ_DEFAULT (20MHz)
 // For setting a specific frequency, use host.max_freq_khz (range 400kHz - 20MHz for SDSPI)
 // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
 sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-
-void list_sd_card_root() {
-    DIR *dir = opendir(mount_point);
-    if (dir == NULL) {
-        perror("opendir");
-        return;
-    }
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != NULL) {
-        printf("Name: %s", entry->d_name);
-
-        // Optional: get full path and check if it's a directory
-        char full_path[300];
-        snprintf(full_path, sizeof(full_path), "%s/%s", mount_point, entry->d_name);
-
-        struct stat st;
-        if (stat(full_path, &st) == 0) {
-            if (S_ISDIR(st.st_mode)) {
-                printf(" [DIR]");
-            }
-        }
-
-        printf("\n");
-    }
-
-    closedir(dir);
-}
-
 
 esp_err_t sd_deinit() {
     esp_err_t ret = ESP_OK;
@@ -58,6 +29,9 @@ esp_err_t sd_deinit() {
     if(esp_vfs_fat_sdcard_unmount(mount_point, card) != ESP_OK) {
         ESP_LOGE(TAG, "Could not unmount vfs");
         ret |= ESP_FAIL;
+        if(card != NULL) {
+            free(card);
+        }
     }
     ESP_LOGI(TAG, "Card unmounted");
 
@@ -72,7 +46,7 @@ esp_err_t sd_deinit() {
 int sdGetFileListLength(char* path) {
     char directory[300];
     sprintf(directory, "%s/%s", mount_point, path);
-    ESP_LOGI(TAG, "Open Path: %s", directory);
+    // ESP_LOGI(TAG, "Open Path: %s", directory);
     DIR *dir = opendir(directory);
     if (dir == NULL) {
         perror("opendir");
@@ -81,23 +55,16 @@ int sdGetFileListLength(char* path) {
     int filelistlength = 0;
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
-        printf("Name: %s", entry->d_name);
-
-        // Optional: get full path and check if it's a directory
         char full_path[300];
         snprintf(full_path, sizeof(full_path), "%s/%s", mount_point, entry->d_name);
-
         struct stat st;
         if (stat(full_path, &st) == 0) {
             if (S_ISDIR(st.st_mode)) {
-                printf(" [DIR]");
             } else {
                 filelistlength++;
             }
         }
-        printf("\n");
     }
-
     closedir(dir);
     return filelistlength;
 }
@@ -121,11 +88,13 @@ int sdGetFileNameFromIndex(int index, char* path, char* namestorage) {
                 if(i < index) {
                     i++;
                 } else {
+                    closedir(dir); //Memory leak if not called!
                     return sprintf(namestorage, "%s", entry->d_name);
                 }
             }
         }
     }
+    closedir(dir);
     return 0;
 }
 

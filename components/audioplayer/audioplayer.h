@@ -25,12 +25,11 @@ typedef struct {
 } filedata_t;
 extern filedata_t filelist[MAX_FILES];
 
-void initSDCard(void);
+esp_err_t initSDCard(void);
 int readFileListFromSD();
 
 void powerEnable(bool state);
 
-void initEncoder();
 void playMP3(char* filepath);
 void stopMP3(void);
 bool isPlayingMP3();

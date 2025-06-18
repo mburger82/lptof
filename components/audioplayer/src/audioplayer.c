@@ -27,20 +27,17 @@
 
 #define GPIO_POWER_ENABLE_BITMASK  (1ULL<<GPIO_POWER_ENABLE)
 
-// StreamBufferHandle_t sb_rxdata;
 typedef struct {
-    char filepath[MAX_NAMELENGTH];
+    char filepath[MAX_NAMELENGTH+10];
     FILE *fd;
-    char fd_path[MAX_NAMELENGTH];
+    char fd_path[MAX_NAMELENGTH+10];
     uint8_t *dbuffer;
     int16_t *playbuffer;
     bool playing;
     bool stopping;
     uint32_t am_senderID;
 }player_mp3_t;
-
-// SemaphoreHandle_t sem_endata;
-// uint32_t mp3_senderID = 0;
+player_mp3_t* player;
 
 filedata_t filelist[MAX_FILES];
 
@@ -55,8 +52,7 @@ static enum mad_flow input(void *data, struct mad_stream *stream) {
     if(obj->dbuffer != NULL) {
         free(obj->dbuffer);
     }
-    // const size_t chunk_size = 4096;
-    const size_t chunk_size = 4*4096;
+    const size_t chunk_size = 2048;
     obj->dbuffer = malloc(chunk_size);
     if (NULL == obj->dbuffer) {
         printf("audio data dbuffer malloc failed");
@@ -93,33 +89,20 @@ static enum mad_flow output(void *data, struct mad_header const *header, struct 
         obj->stopping = false;
         return MAD_FLOW_STOP; 
     }
-    unsigned int nchannels, nsamples;
+    unsigned int nsamples;
     mad_fixed_t const *left_ch, *right_ch;
-    /* pcm->samplerate contains the sampling frequency */
-    //printf("Samplerate: %d \n", pcm->samplerate);
-    nchannels = pcm->channels;
     nsamples = pcm->length;
     left_ch = pcm->samples[0];
     right_ch = pcm->samples[1];
-    // ESP_LOGI(TAG, "MP3 Decoded: channels: %i - length: %i", pcm->channels, pcm->length);
     int i = 0;
     uint16_t mybuffer_audio[1152 * 4];
     while (nsamples--)
     {
-        // signed int sample;
-        // // output sample(s) in 16-bit signed little-endian PCM
-        float volume = 0.95;
-        // sample = scale(*left_ch++);
-        // mybuffer_audio[i++] = (float)(sample * volume);
-        // sample = scale(*right_ch++);
-        // mybuffer_audio[i++] = (float)(sample * volume);
+        float volume = 0.5;
         mybuffer_audio[i++] = scale(*left_ch++)*volume;
-        // mybuffer_audio[i++] = scale(*right_ch++)*volume;
-        mybuffer_audio[i++] = scale(*right_ch++)*0;
-        // mybuffer_audio[i++] = scale(*left_ch++);
-        // mybuffer_audio[i++] = scale(*right_ch++);
+        mybuffer_audio[i++] = scale(*right_ch++)*volume;
     }
-    am_send(mybuffer_audio, 1152 * 4, obj->am_senderID);
+    am_send(mybuffer_audio, 1152 * 4, obj->am_senderID);    
     return MAD_FLOW_CONTINUE;
 }
 
@@ -139,20 +122,14 @@ void initPowerGPIO() {
     gpio_config(&io_conf);
 }
 
-
-
-void initSDCard(void){
-    initSDReader(GPIO_SD_MOSI, GPIO_SD_MISO, GPIO_SD_SCK, GPIO_SD_CS, -1);
+esp_err_t initSDCard(void){
+    return initSDReader(GPIO_SD_MOSI, GPIO_SD_MISO, GPIO_SD_SCK, GPIO_SD_CS, -1);
 }
+
 int readFileListFromSD(){
     int nfiles = sdGetFileListLength("");
-    ESP_LOGI(TAG, "Files in folder: %i", nfiles);
     for(int i = 0; i < nfiles; i++) {
         sdGetFileNameFromIndex(i, "", filelist[i].name);
-    }
-    ESP_LOGI(TAG, "Filelist:");
-    for(int i = 0; i < nfiles; i++) {
-        ESP_LOGI(TAG, "File %i: %s", i, filelist[i].name);
     }
     return nfiles;
 }
@@ -165,23 +142,12 @@ void powerEnable(bool state) {
     }
 }
 
-void initEncoder(void){
-    am_init(AM_I2S_ES8388, 44100, 2048, GPIO_CODEC_I2C_SDA, GPIO_CODEC_I2C_SCL);
-    // if(sem_endata == NULL) {
-    //     sem_endata = xSemaphoreCreateMutex();
-    // }
-    // if(sb_rxdata == NULL) {
-    //     sb_rxdata = xStreamBufferCreate(8*2048, 256);
-    // }
-}
-
 void skip_id3v2_tag(FILE *fp) {
     unsigned char header[10];
     if (fread(header, 1, 10, fp) != 10) {
         fseek(fp, 0, SEEK_SET);
         return;
     }
-
     if (memcmp(header, "ID3", 3) == 0) {
         size_t tag_size =
             ((header[6] & 0x7F) << 21) |
@@ -189,10 +155,10 @@ void skip_id3v2_tag(FILE *fp) {
             ((header[8] & 0x7F) << 7) |
             (header[9] & 0x7F);
         fseek(fp, 10 + tag_size, SEEK_SET);  // Skip tag
-        ESP_LOGI(TAG, "found ID3 Tag. skipping...");
+        // ESP_LOGI(TAG, "found ID3 Tag. skipping...");
     } else {
         fseek(fp, 0, SEEK_SET);  // Not ID3
-        ESP_LOGI(TAG, "found no ID3 Tag. not skipping...");
+        // ESP_LOGI(TAG, "found no ID3 Tag. not skipping...");
     }
 }
 
@@ -211,13 +177,17 @@ void audioControlTask(void* param) {
     for(;;) {
         EventBits_t playercontrol = xEventGroupGetBits(ev_playercontrol);
         if(playercontrol & CONTROL_START_MP3) {
+            xEventGroupClearBits(ev_playercontrol, CONTROL_START_MP3);
             if(!(playercontrol & CONTROL_IS_PLAYING)) {
                 xEventGroupSetBits(ev_playercontrol, PLAYER_START);
             } else {
                 ESP_LOGI(TAG, "Player busy");
             }
         } else if(playercontrol & CONTROL_STOP_MP3) {
-
+            xEventGroupClearBits(ev_playercontrol, CONTROL_STOP_MP3);
+            if(player->playing == true) {
+                player->stopping = true;
+            }
         }
         vTaskDelay(20/portTICK_PERIOD_MS);
     }
@@ -225,42 +195,60 @@ void audioControlTask(void* param) {
 void audioplayerTask(void* param){
     int mp3_senderID = am_register_sender(5);
     ESP_LOGI(TAG, "Created SenderID in audioplayertask: %i", (int)mp3_senderID);
-    player_mp3_t* player = malloc(sizeof(player_mp3_t));        
+    player = malloc(sizeof(player_mp3_t));        
     player->am_senderID = mp3_senderID;
     struct mad_decoder decoder;
     for(;;) {
         player->dbuffer = NULL;
         xEventGroupWaitBits(ev_playercontrol, PLAYER_START, true, false, portMAX_DELAY);
+        ESP_LOGI(TAG, "Player start playing!");
         xEventGroupSetBits(ev_playercontrol, CONTROL_IS_PLAYING);
+        player->stopping = false;
+        player->playing = true;
         xSemaphoreTake(mx_mp3name, portMAX_DELAY);
-        sprintf(player->filepath, "%s\0", mp3path);
+        sprintf(player->filepath, "/sdcard/%s", mp3path);
         xSemaphoreGive(mx_mp3name);
+        ESP_LOGI(TAG, "open file: %s", player->filepath);
         player->fd = fopen(player->filepath, "r");        
         if (player->fd == NULL) {
             printf("Failed to read existing file : %s \n", player->filepath);            
         } else {
+            // ESP_LOGI(TAG, "skip id3 tag");
             skip_id3v2_tag(player->fd);
-            vTaskDelay(10/portTICK_PERIOD_MS);
+            // ESP_LOGI(TAG, "init decoder");
             mad_decoder_init(&decoder, player, input, 0, 0, output, error, 0);
+            // ESP_LOGI(TAG, "run decoder");
             mad_decoder_run(&decoder, MAD_DECODER_MODE_SYNC);            
+            // ESP_LOGI(TAG, "running");
             mad_decoder_finish(&decoder);
-            free(player->dbuffer);
-            // printf("Finished decoding \n");
+            player->playing = false;
+            if(player->dbuffer != NULL) {
+                free(player->dbuffer);
+            }
             fclose(player->fd);
-            ESP_LOGI(TAG, "MP3 finished playing");
+
+            am_buffer_flush(mp3_senderID);
+            
+            // ESP_LOGI(TAG, "MP3 finished playing");
             xEventGroupClearBits(ev_playercontrol, CONTROL_IS_PLAYING);
         }
         vTaskDelay(50/portTICK_PERIOD_MS);
     }
 }
 void playMP3(char* filepath) {
-    
+    xSemaphoreTake(mx_mp3name, portMAX_DELAY);
+    sprintf(mp3path, "%s", filepath);
+    xEventGroupSetBits(ev_playercontrol, CONTROL_START_MP3);
+    xSemaphoreGive(mx_mp3name);
 }
 void stopMP3(void) {
-
+    xEventGroupSetBits(ev_playercontrol, CONTROL_STOP_MP3);
 }
 bool isPlayingMP3() {
-
+    if(xEventGroupGetBits(ev_playercontrol) & CONTROL_IS_PLAYING) {
+        return true;
+    }
+    return false;
 }
 void setVolumeMain(int volume) {
     am_setVolumeMain(volume);
@@ -273,6 +261,7 @@ void setVolumeOut2(int volume) {
 }
 
 void initAudioPlayer() {
+    am_init(AM_I2S_ES8388, 44100, 2048, GPIO_CODEC_I2C_SDA, GPIO_CODEC_I2C_SCL);
     xTaskCreate(audioControlTask, "audiocontroller", 2*2048, NULL, 5, NULL);
     xTaskCreate(audioplayerTask, "audioplayer", 10*2048, NULL, 5, NULL);
 }

@@ -7,8 +7,6 @@
 #include "freertos/stream_buffer.h"
 #include "freertos/message_buffer.h"
 #include "esp_system.h"
-// #include "esp_event.h"
-// #include "esp_event_loop.h"
 #include "esp_log.h"
 #include "audiomanager.h"
 #include "codec_es8388.h"
@@ -83,7 +81,7 @@ void audioTask(void* p) {
         memset(buffer_write, 0, audio_buffer_size);
         while(sender != NULL) {
             if(xStreamBufferBytesAvailable(sender->sendbuffer) >= audio_buffer_size) {
-                size_t size = xStreamBufferReceive(sender->sendbuffer, data, audio_buffer_size, 0);
+                xStreamBufferReceive(sender->sendbuffer, data, audio_buffer_size, 0);
                 for(int i = 0; i < audio_buffer_size/sizeof(int16_t);i++) {
                     buffer_write[i]+= data[i];
                 }
@@ -136,7 +134,7 @@ int am_register_sender(uint32_t dataslots) {
 }
 uint32_t am_getBufferSize(uint8_t sizeofElement) {
     xEventGroupWaitBits(ev_audiomanager_state, AUDIOMANAGER_READY, false, false, portMAX_DELAY);    
-    if(sizeofElement == NULL) {
+    if(sizeofElement == 0) {
         return audio_buffer_size;
     } else {
         return audio_buffer_size/sizeofElement;
@@ -155,4 +153,8 @@ void am_send(void* data, uint32_t size, int senderID) {
 int am_receive(void* data) {
     xEventGroupWaitBits(ev_audiomanager_state, AUDIOMANAGER_READY, false, false, portMAX_DELAY);    
     return xQueueReceive(q_audio_receive, data, portMAX_DELAY);    
+}
+void am_buffer_flush(uint32_t senderID) {
+    am_senderdata_t* sender = getSender(senderID);
+    xStreamBufferReset(sender->sendbuffer);
 }

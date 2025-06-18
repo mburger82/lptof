@@ -1,14 +1,9 @@
 #pragma once
 
 #include "stdio.h"
-// I2S Interface
-#define I2S_NUM I2S_NUM_0
-
 /*--------------------------------------------------------------*/
 /*                                                              */
 /*-------------------------------------------------------------*/
-
-// #define AUDIO_BUFF_LEN 2048
 
 typedef enum {
     AM_I2S_ES8388,
@@ -26,3 +21,4 @@ uint32_t am_getBufferSize(uint8_t sizeofElement);
 uint32_t am_getBufferLevel(uint32_t senderID);
 void am_send(void* data, uint32_t size, int senderID);
 int am_receive(void* data);
+void am_buffer_flush(uint32_t senderID);
