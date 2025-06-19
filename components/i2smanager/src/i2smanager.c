@@ -37,11 +37,11 @@ void i2smanager_init(uint32_t samplerate, i2s_data_bit_width_t bits_per_sample, 
         .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(samplerate),
         .slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(bits_per_sample, I2S_SLOT_MODE_STEREO),
         .gpio_cfg = {
-            .mclk = IS2_MCLK_PIN,    // some codecs may require mclk signal, this example doesn't need it
-            .bclk = I2S_BCK_IO,
-            .ws   = I2S_WS_IO,
-            .dout = I2S_DO_IO,
-            .din  = I2S_DI_IO,
+            .mclk = GPIO_I2S_MCLK,    // some codecs may require mclk signal, this example doesn't need it
+            .bclk = GPIO_I2S_BCLK,
+            .ws   = GPIO_I2S_LRCLK,
+            .dout = GPIO_I2S_DOUT,
+            .din  = GPIO_I2S_DIN,
             .invert_flags = {
                 .mclk_inv = false,
                 .bclk_inv = false,
