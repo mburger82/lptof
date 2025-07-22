@@ -25,35 +25,46 @@ void app_main() {
     // config.max_freq_mhz = 240;
     // config.min_freq_mhz = 20;
     // esp_pm_configure(&config);
-    initButtonhandler();
+    // initButtonhandler();
     // initTMF8820(200, 25, 6, 100, 2000);
-    initAudioPlayer();
-    powerEnable(true);
-    initSDCard();
+    // vTaskDelay(2000);
+    // initAudioPlayer();
+    // powerEnable(true);
+    // initSDCard();
     
     
     
-    uint8_t volume = 80;
-    setVolumeMain(volume);
-    setVolumeOut1(volume);
-    setVolumeOut2(volume);
+    // uint8_t volume = 80;
+    // setVolumeMain(volume);
+    // setVolumeOut1(volume);
+    // setVolumeOut2(volume);
 
     for(;;) {
-        if(getButtonPress(BUTTON_REC, true) == BUTTON_PRESSED_SHORT) {
-            ESP_LOGI(TAG, "Button Rec pressed short");
-            if(initSDCard() == ESP_OK) {
-                int nfiles = readFileListFromSD();
-                if(nfiles > 0) {
-                    int randomnumber = rand() % nfiles;            
-                    playMP3(filelist[randomnumber].name);
-                }
-            }
-        }
-        if(getButtonPress(BUTTON_MODE, true) == BUTTON_PRESSED_SHORT) {
-            ESP_LOGI(TAG, "Button Mode pressed short");
-            stopMP3();
-        }
+        ESP_LOGI(TAG, "Test");
+        // if(getButtonPress(BUTTON_REC, true) == BUTTON_PRESSED_SHORT) {
+        //     ESP_LOGI(TAG, "Button Rec pressed short");
+        //     if(initSDCard() == ESP_OK) {
+        //         int nfiles = readFileListFromSD();
+        //         if(nfiles > 0) {
+        //             int randomnumber = rand() % nfiles;            
+        //             playMP3(filelist[randomnumber].name);
+        //         }
+        //     }
+        // }
+        // if(getButtonPress(BUTTON_MODE, true) == BUTTON_PRESSED_SHORT) {
+        //     ESP_LOGI(TAG, "Button Mode pressed short");
+        //     stopMP3();
+        // }
         // if(tmf8820_detected()) {
+        //     if(!isPlayingMP3()) {
+        //         if(initSDCard() == ESP_OK) {
+        //             int nfiles = readFileListFromSD();
+        //             if(nfiles > 0) {
+        //                 int randomnumber = rand() % nfiles;            
+        //                 playMP3(filelist[randomnumber].name);
+        //             }
+        //         }
+        //     }
         //     ESP_LOGI(TAG, "Found you! Distance: %i", tmf8820_distance());
         // }
         vTaskDelay(50/portTICK_PERIOD_MS);
